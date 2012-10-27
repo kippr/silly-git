@@ -2,54 +2,69 @@
 
 class FileStat
     attr_reader :count,:added,:removed,:name
-    def initialize file_name
-        @name= file_name
-        @count, @added, @removed = 0, 0, 0
+
+    def self.placeholder file_name
+        FileStat.new( file_name, 0, 0, 0)
     end
 
-    def record added, removed
-        @count += 1
-        @added += added
-        @removed += removed
+    def initialize file_name, added, removed, count
+        @name = file_name
+        @added, @removed, @count = added, removed, count
+    end
+
+    def + other
+        new_name = self.name == other.name ? self.name : '-'
+        FileStat.new( new_name, self.added + other.added, self.removed + other.removed, self.count + other.count )
+    end
+
+    def net
+        @added - @removed
     end
 
     def to_s
-        "#{@name}: #{@count} commit#{@count != 1 ? 's' : ''}, #{@added} #{@removed}"
+        "#{@name}: #{@count} commit#{@count != 1 ? 's' : ''}, +#{@added} -#{@removed}"
     end
 
 end
 
 class RepoStats
 
-    attr_reader :per_file
+    attr_reader :files
 
-    def initialize
-        @per_file = Hash.new{|h,file_name| h[file_name] = FileStat.new(file_name) }
+    def initialize files
+        @files = files
     end
 
-    def read
+    def self.read
+        per_file = Hash.new{|h,file_name| h[file_name] = FileStat.placeholder( file_name) }
         commits = `git log --numstat | grep -E '^[0-9]+[[:space:]]+[0-9]+'`
         commits.each_line do | line |
             added, removed, file = line.split
-            added, removed = added.to_i, removed.to_i
-            @per_file[file].record(added, removed)
+            per_file[file] += FileStat.new(file, added.to_i, removed.to_i, 1)
         end
-        puts "Read changes for #{@per_file.size} files"
-        self
+        puts "Read changes for #{per_file.size} files"
+        RepoStats.new( per_file.each_value.to_a )
     end
 
     def filter &block
-        match = block && @per_file.values.select(&block) || @per_file.each_value
-        match = match.to_a
-        puts "#{match.size} files match"
-        match
+        matches = block && files.select(&block) || files
+        matches = matches.to_a
+        puts "#{matches.size} files match"
+        RepoStats.new( matches )
     end
 
+    def summarize
+        files.inject(:+)
+    end
+
+    def to_s
+        summarize.to_s
+    end
 
 end
 
 
-r = RepoStats.new.read
+r = RepoStats.read
 
 require 'pry'
 binding.pry
