@@ -1,0 +1,9 @@
+Count all python commits
+git log --stat 2>&1| egrep '\.py\W\|'|wc -l
+
+Find all log entries that contain fix/ bug
+git log -E -i --grep='[[:space:]](fix|bug)'
+
+Add/ deletes per file
+git log --numstat | grep -E '^[0-9]+[[:space:]]+[0-9]+'
+
