@@ -17,12 +17,21 @@ class FileStat
         FileStat.new( new_name, self.added + other.added, self.removed + other.removed, self.count + other.count )
     end
 
+    def gross
+        @added + @removed
+    end
+
     def net
         @added - @removed
     end
 
+    def net_to_added
+        return 0 if @added == 0
+        net.to_f / @added
+    end
+
     def to_s
-        "#{@name}: #{@count} commit#{@count != 1 ? 's' : ''}, +#{@added} -#{@removed}"
+        "#{@name}: #{@count} commit#{@count != 1 ? 's' : ''}, +#{@added} -#{@removed} [%.4f]" % net_to_added
     end
 
 end
